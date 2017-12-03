@@ -1,0 +1,8 @@
+[Unit]
+Description=app
+
+[Service]
+ExecStart=/home/pi/.nvm/versions/node/v9.2.0/bin/node /home/pi/server/server.js
+
+[Install]
+WantedBy=multi-user.target
