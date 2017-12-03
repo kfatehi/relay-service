@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+const configFile = '/boot/config.json';
+const config = require(configFile);
+const spawn = require('child_process').spawn;
+const fs = require('fs');
+
+function gpio(...args) {
+  spawn('/usr/bin/gpio', args, { stdio: 'inherit' });
+}
+
+function notify() {
+  try {
+    let serverPid = parseInt(fs.readFileSync('/var/run/app.pid'));
+    process.kill(serverPid, 'SIGUSR1');
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+const ON = 0;
+const OFF = 1;
+
+switch (process.argv[2]) {
+  case 'init': {
+    gpio('-g', 'mode', config.gpio, 'out');
+    gpio('-g', 'write', config.gpio, config.lastValue);
+  } break;
+  case 'state': {
+    process.stdout.write(JSON.stringify({
+      text: config.lastValue === ON ? 'on' : 'off',
+      value: config.lastValue
+    }, null, 2)+'\n');
+  } break;
+  case 'on': {
+    gpio('-g', 'write', config.gpio, ON);
+    config.lastValue = ON;
+    fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+    notify()
+  } break;
+  case 'off': {
+    gpio('-g', 'write', config.gpio, OFF);
+    config.lastValue = OFF;
+    fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+    notify()
+  } break;
+  default: {
+    console.log("commands: init, on, off")
+  }
+}
